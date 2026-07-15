@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NFC Shopping List Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="tab-catalog">
+                <i class="fas fa-plus-circle"></i> Catálogo
+            </button>
+            <button class="tab-btn" data-tab="tab-list">
+                <i class="fas fa-shopping-basket"></i> Mi Lista 
+                <span id="badge-count" class="badge">0</span>
+            </button>
+        </nav>
+
+        <main class="content">
+            <section id="tab-catalog" class="tab-content active">
+                <div class="search-box">
+                    <input type="text" id="product-input" placeholder="Buscar o añadir nuevo..." autocomplete="off">
+                    <button id="add-btn"><i class="fas fa-plus"></i></button>
+                </div>
+                
+                <div class="catalog-container">
+                    <h3>Sugerencias del catálogo</h3>
+                    <ul id="catalog-list">
+                        </ul>
+                </div>
+            </section>
+
+            <section id="tab-list" class="tab-content">
+                <div class="list-header">
+                    <h2>Lista de Hoy</h2>
+                    <button id="clear-list" class="text-btn">Vaciar todo</button>
+                </div>
+                <ul id="shopping-list">
+                    </ul>
+
+                <div class="send-section">
+                    <h3>Enviar compra a...</h3>
+                    <div class="contacts-grid">
+                        <button class="send-btn" data-phone="34677475739" data-name="Papá">
+                            <i class="fab fa-whatsapp"></i> Papá
+                        </button>
+                        <button class="send-btn" data-phone="34670745484" data-name="Mamá">
+                            <i class="fab fa-whatsapp"></i> Mamá
+                        </button>
+                        <button class="send-btn" data-phone="34663114035" data-name="Santi">
+                            <i class="fab fa-whatsapp"></i> Santi
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
