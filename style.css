@@ -13,7 +13,7 @@
     --tab-inactive: #555;
 }
 
-html, body { height: 100%; overflow: hidden; }
+html, body { position: fixed; inset: 0; overflow: hidden; height: 100%; }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
 
 body {
@@ -24,10 +24,9 @@ body {
 }
 
 .app-container {
-    width: 100%; max-width: 450px; height: 100vh;
+    width: 100%; max-width: 450px; height: 100%;
     background-color: var(--bg-dark);
     display: flex; flex-direction: column;
-    overflow: hidden;
 }
 
 /* ===== TABS ===== */
