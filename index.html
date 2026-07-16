@@ -59,6 +59,23 @@
         </main>
     </div>
 
+    <!-- MODAL CANTIDAD -->
+    <div id="qty-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span id="modal-name" class="modal-name"></span>
+                <button class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <button class="modal-qty-btn minus">−</button>
+                <span id="modal-qty" class="modal-qty-num">1</span>
+                <button class="modal-qty-btn plus">+</button>
+            </div>
+            <p id="modal-warning" class="modal-warning">Se eliminará al cerrar</p>
+            <p class="modal-hint">Toca fuera para aplicar</p>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>

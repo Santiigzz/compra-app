@@ -57,30 +57,89 @@ contentEl.addEventListener('touchend', (e) => {
     else if (dx > 0 && idx > 0) switchTab(tabs[idx - 1]);
 }, { passive: true });
 
+// --- MODAL CANTIDAD ---
+let modalItem = null;
+const modalEl = document.getElementById("qty-modal");
+const modalName = document.getElementById("modal-name");
+const modalQty = document.getElementById("modal-qty");
+const modalWarning = document.getElementById("modal-warning");
+
+function openQtyModal(item) {
+    modalItem = { ...item };
+    modalName.textContent = item.nombre;
+    updateModalUI();
+    modalEl.classList.add("open");
+}
+
+function updateModalUI() {
+    modalQty.textContent = modalItem.cantidad;
+    modalWarning.classList.toggle("show", modalItem.cantidad === 0);
+}
+
+function closeQtyModal() {
+    modalEl.classList.remove("open");
+    if (!modalItem) return;
+    if (modalItem.cantidad <= 0) {
+        deleteDoc(doc(db, "lista_actual", modalItem.id));
+    } else {
+        const orig = currentList.find(i => i.id === modalItem.id);
+        if (orig && orig.cantidad !== modalItem.cantidad) {
+            updateDoc(doc(db, "lista_actual", modalItem.id), { cantidad: modalItem.cantidad });
+        }
+    }
+    modalItem = null;
+}
+
+document.querySelector(".modal-close").addEventListener("click", closeQtyModal);
+modalEl.addEventListener("click", (e) => { if (e.target === e.currentTarget) closeQtyModal(); });
+document.querySelector(".modal-qty-btn.minus").addEventListener("click", () => {
+    if (!modalItem) return;
+    modalItem.cantidad = Math.max(0, modalItem.cantidad - 1);
+    updateModalUI();
+});
+document.querySelector(".modal-qty-btn.plus").addEventListener("click", () => {
+    if (!modalItem) return;
+    modalItem.cantidad += 1;
+    updateModalUI();
+});
+
 // --- CARGAR LISTA ACTUAL ---
 onSnapshot(actualListRef, (snapshot) => {
     const listUl = document.getElementById("shopping-list");
     const badge = document.getElementById("badge-count");
     listUl.innerHTML = "";
     currentList = [];
-    
+
     snapshot.forEach(d => {
         const data = d.data();
         const item = { id: d.id, nombre: data.nombre, cantidad: data.cantidad || 1 };
         currentList.push(item);
+
         const li = document.createElement("li");
-        li.innerHTML = `
-            <span class="item-name">${item.nombre}</span>
-            <div class="item-actions">
-                ${item.cantidad > 1 ? `<span class="item-qty">×${item.cantidad}</span>` : ''}
-                <button class="delete-btn" onclick="deleteItem('${item.id}')">✕</button>
-            </div>`;
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "item-name";
+        nameSpan.textContent = item.nombre;
+
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "item-actions";
+
+        const qtySpan = document.createElement("span");
+        qtySpan.className = "item-qty";
+        qtySpan.textContent = `×${item.cantidad}`;
+        qtySpan.addEventListener("click", () => openQtyModal({ id: item.id, nombre: item.nombre, cantidad: item.cantidad }));
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-btn";
+        delBtn.textContent = "✕";
+        delBtn.addEventListener("click", () => deleteDoc(doc(db, "lista_actual", item.id)));
+
+        actionsDiv.append(qtySpan, delBtn);
+        li.append(nameSpan, actionsDiv);
         listUl.appendChild(li);
     });
     badge.innerText = currentList.length;
 });
-
-window.deleteItem = async (id) => await deleteDoc(doc(db, "lista_actual", id));
 
 document.getElementById("clear-list").addEventListener("click", async () => {
     if (currentList.length === 0) return;
@@ -99,15 +158,64 @@ function renderCatalog(filter) {
     const catalogUl = document.getElementById("catalog-list");
     catalogUl.innerHTML = "";
     const filtered = catalogData.filter(p => p.nombre.toUpperCase().includes(filter.toUpperCase()));
-    
+
     filtered.forEach(p => {
         const li = document.createElement("li");
-        li.innerHTML = `<span>${p.nombre}</span> <button class="add-from-catalog" onclick="addToCurrentList('${p.nombre}')">+</button>`;
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = p.nombre;
+
+        const btn = document.createElement("button");
+        btn.className = "add-from-catalog";
+        btn.textContent = "+";
+        btn.addEventListener("click", () => {
+            addToCurrentList(p.nombre);
+            animateAdd(btn);
+        });
+
+        li.append(nameSpan, btn);
         catalogUl.appendChild(li);
     });
 }
 
 document.getElementById("product-input").addEventListener("input", (e) => renderCatalog(e.target.value.toUpperCase()));
+
+// --- ANIMACIÓN AL AÑADIR ---
+function animateAdd(sourceEl) {
+    const tabEl = document.querySelector('.tab-btn[data-tab="tab-list"]');
+    if (!sourceEl || !tabEl) return;
+    const src = sourceEl.getBoundingClientRect();
+    const tgt = tabEl.getBoundingClientRect();
+
+    const dot = document.createElement("div");
+    dot.textContent = "✓";
+    Object.assign(dot.style, {
+        position: "fixed", zIndex: "200", pointerEvents: "none",
+        width: "22px", height: "22px", borderRadius: "50%",
+        background: "#2ecc71", color: "#fff", fontSize: "11px",
+        fontWeight: "bold", display: "flex", alignItems: "center",
+        justifyContent: "center", boxShadow: "0 2px 8px rgba(46,204,113,0.5)",
+        left: (src.left + src.width / 2 - 11) + "px",
+        top: (src.top + src.height / 2 - 11) + "px"
+    });
+    document.body.appendChild(dot);
+
+    const dx = tgt.left + tgt.width / 2 - src.left - src.width / 2;
+    const dy = tgt.top + tgt.height / 2 - src.top - src.height / 2;
+
+    const anim = dot.animate([
+        { transform: "scale(1)", opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.2)`, opacity: 0 }
+    ], { duration: 550, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" });
+
+    anim.onfinish = () => {
+        dot.remove();
+        const badge = document.getElementById("badge-count");
+        badge.style.transition = "transform 0.15s ease";
+        badge.style.transform = "scale(1.35)";
+        setTimeout(() => badge.style.transform = "scale(1)", 250);
+    };
+}
 
 // --- AÑADIR / CANTIDAD ---
 window.addToCurrentList = async (name) => {
@@ -128,6 +236,7 @@ document.getElementById("add-btn").addEventListener("click", async () => {
             await addDoc(catalogRef, { nombre: val });
         }
         input.value = "";
+        animateAdd(document.getElementById("add-btn"));
     }
 });
 
