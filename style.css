@@ -160,7 +160,7 @@ body {
 /* ===== SEND ===== */
 .send-section { margin-top: auto; padding: 20px 0; }
 .send-section h3 { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 14px; text-align: center; }
-.contacts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.contacts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
 .send-btn {
     padding: 18px 6px; border-radius: 14px; border: none;
