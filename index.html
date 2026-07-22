@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GONZÁLEZ RUIZ SHOPPING LIST</title>
+    <title>Lista de la compra</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
+
+        <div class="familia-bar">
+            <span id="current-familia" class="familia-name">Seleccionar familia</span>
+            <button id="settings-btn" class="settings-btn" title="Cambiar familia">
+                <i class="fas fa-users-cog"></i>
+            </button>
+        </div>
+
         <nav class="tab-nav">
             <button class="tab-btn active" data-tab="tab-catalog">
                 <i class="fas fa-plus-circle"></i> Catálogo
@@ -29,7 +37,7 @@
                 <div class="catalog-container">
                     <h3>Sugerencias del catálogo</h3>
                     <ul id="catalog-list">
-                        </ul>
+                    </ul>
                 </div>
             </section>
 
@@ -39,27 +47,39 @@
                     <button id="clear-list" class="text-btn">Vaciar todo</button>
                 </div>
                 <ul id="shopping-list">
-                    </ul>
+                </ul>
 
                 <div class="send-section">
                     <h3>Enviar compra a...</h3>
-                    <div class="contacts-grid">
-                        <button class="send-btn" data-phone="34677475739" data-name="Papá">
-                            <i class="fab fa-whatsapp"></i> Papá
-                        </button>
-                        <button class="send-btn" data-phone="34670745484" data-name="Mamá">
-                            <i class="fab fa-whatsapp"></i> Mamá
-                        </button>
-                        <button class="send-btn" data-phone="34663114035" data-name="Santi">
-                            <i class="fab fa-whatsapp"></i> Santi
-                        </button>
-                        <button class="send-btn" data-phone="34627421138" data-name="Jaime">
-                            <i class="fab fa-whatsapp"></i> Jaime
-                        </button>
+                    <div class="contacts-grid" id="contacts-grid">
                     </div>
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- MODAL SELECCIONAR FAMILIA -->
+    <div id="familia-modal" class="modal-overlay">
+        <div class="modal-card familia-modal-card">
+            <div class="modal-header">
+                <span class="modal-name">¿Quién eres?</span>
+                <button class="familia-close-btn" id="familia-close-btn">✕</button>
+            </div>
+            <div class="familia-grid">
+                <button class="familia-card" data-familia="madrid">
+                    <span class="familia-card-icon"><i class="fas fa-city"></i></span>
+                    <span class="familia-card-name">Madrid</span>
+                </button>
+                <button class="familia-card" data-familia="miraflores">
+                    <span class="familia-card-icon"><i class="fas fa-home"></i></span>
+                    <span class="familia-card-name">Mira</span>
+                </button>
+                <button class="familia-card" data-familia="nere">
+                    <span class="familia-card-icon"><i class="fas fa-heart"></i></span>
+                    <span class="familia-card-name">Nere</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL CANTIDAD -->

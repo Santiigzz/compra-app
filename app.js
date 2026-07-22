@@ -1,8 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "TU_API_KEY", // <--- MANTÉN TUS KEYS AQUÍ
+    apiKey: "TU_API_KEY",
     authDomain: "compra-nfc.firebaseapp.com",
     projectId: "compra-nfc",
     storageBucket: "compra-nfc.firebasestorage.app",
@@ -10,13 +10,138 @@ const firebaseConfig = {
     appId: "1:77738132764:web:31f8d53c6fd33a41bc66d9"
 };
 
+const FAMILIAS = {
+    madrid: {
+        nombre: "Madrid",
+        whatsapp: [
+            { nombre: "Papá", telefono: "34677475739" },
+            { nombre: "Mamá", telefono: "34670745484" },
+            { nombre: "Santi", telefono: "34663114035" },
+            { nombre: "Jaime", telefono: "34627421138" },
+        ]
+    },
+    miraflores: {
+        nombre: "Miraflores",
+        whatsapp: [
+            { nombre: "Papá", telefono: "34677475739" },
+            { nombre: "Mamá", telefono: "34670745484" },
+            { nombre: "Santi", telefono: "34663114035" },
+            { nombre: "Jaime", telefono: "34627421138" },
+        ]
+    },
+    nere: {
+        nombre: "Nere",
+        whatsapp: [
+            { nombre: "Iván", telefono: "34616156786" },
+            { nombre: "David", telefono: "34619822639" },
+            { nombre: "Chusa", telefono: "34653806333" },
+            { nombre: "Nere", telefono: "34620171642" },
+        ]
+    }
+};
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const actualListRef = collection(db, "lista_actual");
-const catalogRef = collection(db, "catalogo_productos");
 
+let familiaActual = null;
+let unsubLista = null;
+let unsubCatalogo = null;
 let catalogData = [];
 let currentList = [];
+
+function getListaRef() {
+    return collection(db, "familias", familiaActual, "lista_actual");
+}
+
+function getCatalogoRef() {
+    return collection(db, "familias", familiaActual, "catalogo_productos");
+}
+
+function renderWhatsAppButtons() {
+    const grid = document.getElementById("contacts-grid");
+    const familia = FAMILIAS[familiaActual];
+    grid.innerHTML = familia.whatsapp.map(c =>
+        `<button class="send-btn" data-phone="${c.telefono}" data-name="${c.nombre}">
+            <i class="fab fa-whatsapp"></i> ${c.nombre}
+        </button>`
+    ).join("");
+}
+
+function showFamilySelector() {
+    document.getElementById("familia-modal").classList.add("open");
+}
+
+function hideFamilySelector() {
+    document.getElementById("familia-modal").classList.remove("open");
+}
+
+function selectFamilia(id) {
+    hideFamilySelector();
+    initFamily(id);
+}
+
+function initFamily(id) {
+    familiaActual = id;
+    localStorage.setItem("familia", id);
+
+    if (unsubLista) unsubLista();
+    if (unsubCatalogo) unsubCatalogo();
+
+    currentList = [];
+    catalogData = [];
+    document.getElementById("shopping-list").innerHTML = "";
+    document.getElementById("badge-count").innerText = "0";
+    document.getElementById("catalog-list").innerHTML = "";
+    document.getElementById("current-familia").textContent = FAMILIAS[id].nombre;
+
+    renderWhatsAppButtons();
+
+    const listaRef = getListaRef();
+    const catalogoRef = getCatalogoRef();
+
+    unsubLista = onSnapshot(listaRef, (snapshot) => {
+        const listUl = document.getElementById("shopping-list");
+        const badge = document.getElementById("badge-count");
+        listUl.innerHTML = "";
+        currentList = [];
+
+        snapshot.forEach(d => {
+            const data = d.data();
+            const item = { id: d.id, nombre: data.nombre, cantidad: data.cantidad || 1 };
+            currentList.push(item);
+
+            const li = document.createElement("li");
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "item-name";
+            nameSpan.textContent = item.nombre;
+
+            const actionsDiv = document.createElement("div");
+            actionsDiv.className = "item-actions";
+
+            const qtySpan = document.createElement("span");
+            qtySpan.className = "item-qty";
+            qtySpan.textContent = `×${item.cantidad}`;
+            qtySpan.addEventListener("click", () => openQtyModal({ id: item.id, nombre: item.nombre, cantidad: item.cantidad }));
+
+            const delBtn = document.createElement("button");
+            delBtn.className = "delete-btn";
+            delBtn.textContent = "✕";
+            delBtn.addEventListener("click", () => deleteDoc(doc(db, "familias", familiaActual, "lista_actual", item.id)));
+
+            actionsDiv.append(qtySpan, delBtn);
+            li.append(nameSpan, actionsDiv);
+            listUl.appendChild(li);
+        });
+        badge.innerText = currentList.length;
+    });
+
+    unsubCatalogo = onSnapshot(catalogoRef, (snapshot) => {
+        catalogData = [];
+        snapshot.forEach(d => catalogData.push({ id: d.id, ...d.data() }));
+        renderCatalog("");
+    });
+}
 
 // --- NAVEGACIÓN DE PESTAÑAS ---
 function switchTab(tabId) {
@@ -80,11 +205,11 @@ function closeQtyModal() {
     modalEl.classList.remove("open");
     if (!modalItem) return;
     if (modalItem.cantidad <= 0) {
-        deleteDoc(doc(db, "lista_actual", modalItem.id));
+        deleteDoc(doc(db, "familias", familiaActual, "lista_actual", modalItem.id));
     } else {
         const orig = currentList.find(i => i.id === modalItem.id);
         if (orig && orig.cantidad !== modalItem.cantidad) {
-            updateDoc(doc(db, "lista_actual", modalItem.id), { cantidad: modalItem.cantidad });
+            updateDoc(doc(db, "familias", familiaActual, "lista_actual", modalItem.id), { cantidad: modalItem.cantidad });
         }
     }
     modalItem = null;
@@ -103,57 +228,13 @@ document.querySelector(".modal-qty-btn.plus").addEventListener("click", () => {
     updateModalUI();
 });
 
-// --- CARGAR LISTA ACTUAL ---
-onSnapshot(actualListRef, (snapshot) => {
-    const listUl = document.getElementById("shopping-list");
-    const badge = document.getElementById("badge-count");
-    listUl.innerHTML = "";
-    currentList = [];
-
-    snapshot.forEach(d => {
-        const data = d.data();
-        const item = { id: d.id, nombre: data.nombre, cantidad: data.cantidad || 1 };
-        currentList.push(item);
-
-        const li = document.createElement("li");
-
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "item-name";
-        nameSpan.textContent = item.nombre;
-
-        const actionsDiv = document.createElement("div");
-        actionsDiv.className = "item-actions";
-
-        const qtySpan = document.createElement("span");
-        qtySpan.className = "item-qty";
-        qtySpan.textContent = `×${item.cantidad}`;
-        qtySpan.addEventListener("click", () => openQtyModal({ id: item.id, nombre: item.nombre, cantidad: item.cantidad }));
-
-        const delBtn = document.createElement("button");
-        delBtn.className = "delete-btn";
-        delBtn.textContent = "✕";
-        delBtn.addEventListener("click", () => deleteDoc(doc(db, "lista_actual", item.id)));
-
-        actionsDiv.append(qtySpan, delBtn);
-        li.append(nameSpan, actionsDiv);
-        listUl.appendChild(li);
-    });
-    badge.innerText = currentList.length;
-});
-
 document.getElementById("clear-list").addEventListener("click", async () => {
     if (currentList.length === 0) return;
-    const snap = await getDocs(actualListRef);
-    snap.forEach(async (d) => await deleteDoc(doc(db, "lista_actual", d.id)));
+    const snap = await getDocs(getListaRef());
+    snap.forEach(async (d) => await deleteDoc(doc(db, "familias", familiaActual, "lista_actual", d.id)));
 });
 
-// --- CARGAR Y FILTRAR CATÁLOGO ---
-onSnapshot(catalogRef, (snapshot) => {
-    catalogData = [];
-    snapshot.forEach(d => catalogData.push({id: d.id, ...d.data()}));
-    renderCatalog("");
-});
-
+// --- CATÁLOGO ---
 function renderCatalog(filter) {
     const catalogUl = document.getElementById("catalog-list");
     catalogUl.innerHTML = "";
@@ -221,37 +302,59 @@ function animateAdd(sourceEl) {
 window.addToCurrentList = async (name) => {
     const existing = currentList.find(i => i.nombre.toUpperCase() === name.toUpperCase());
     if (existing) {
-        await updateDoc(doc(db, "lista_actual", existing.id), { cantidad: existing.cantidad + 1 });
+        await updateDoc(doc(db, "familias", familiaActual, "lista_actual", existing.id), { cantidad: existing.cantidad + 1 });
     } else {
-        await addDoc(actualListRef, { nombre: name, cantidad: 1 });
+        await addDoc(getListaRef(), { nombre: name, cantidad: 1 });
     }
 };
 
 document.getElementById("add-btn").addEventListener("click", async () => {
     const input = document.getElementById("product-input");
     const val = input.value.trim().toUpperCase();
-    if(val) {
+    if (val) {
         await addToCurrentList(val);
-        if(!catalogData.find(p => p.nombre.toUpperCase() === val.toUpperCase())) {
-            await addDoc(catalogRef, { nombre: val });
+        if (!catalogData.find(p => p.nombre.toUpperCase() === val.toUpperCase())) {
+            await addDoc(getCatalogoRef(), { nombre: val });
         }
         input.value = "";
         animateAdd(document.getElementById("add-btn"));
     }
 });
 
-// --- WHATSAPP Y VACIAR ---
-document.querySelectorAll(".send-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-        if(currentList.length === 0) return alert("Lista vacía");
-        
-        let msg = `*LISTA DE LA COMPRA*\n\n`;
-        currentList.forEach(i => msg += `- ${i.nombre}\n`);
-        
-        window.open(`https://wa.me/${btn.dataset.phone}?text=${encodeURIComponent(msg)}`, "_blank");
-        
-        // Vaciar lista
-        const snap = await getDocs(actualListRef);
-        snap.forEach(async (d) => await deleteDoc(doc(db, "lista_actual", d.id)));
-    });
+// --- WHATSAPP (event delegation) ---
+document.getElementById("contacts-grid").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".send-btn");
+    if (!btn) return;
+    if (currentList.length === 0) return alert("Lista vacía");
+
+    let msg = `*LISTA DE LA COMPRA*\n\n`;
+    currentList.forEach(i => msg += `- ${i.nombre}\n`);
+
+    window.open(`https://wa.me/${btn.dataset.phone}?text=${encodeURIComponent(msg)}`, "_blank");
+
+    const snap = await getDocs(getListaRef());
+    snap.forEach(async (d) => await deleteDoc(doc(db, "familias", familiaActual, "lista_actual", d.id)));
+});
+
+// --- FAMILIA SELECTOR ---
+document.querySelectorAll(".familia-card").forEach(card => {
+    card.addEventListener("click", () => selectFamilia(card.dataset.familia));
+});
+
+document.getElementById("familia-modal").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) hideFamilySelector();
+});
+
+document.getElementById("settings-btn").addEventListener("click", showFamilySelector);
+document.getElementById("familia-close-btn").addEventListener("click", hideFamilySelector);
+
+// --- INICIO ---
+document.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("familia");
+    if (saved && FAMILIAS[saved]) {
+        initFamily(saved);
+    } else {
+        document.getElementById("current-familia").textContent = "Seleccionar familia";
+        showFamilySelector();
+    }
 });
